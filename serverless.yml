@@ -1,0 +1,56 @@
+service: aws-node-http-api-project
+frameworkVersion: '2'
+
+provider:
+    name: aws
+    runtime: nodejs12.x
+    lambdaHashingVersion: '20201221'
+    region: eu-central-1
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+          - dynamodb:Scan
+          - dynamodb:GetItem
+          - dynamodb:PutItem
+        Resource: "*"
+
+functions:
+    position:
+        handler: src/addPosition.addPosition
+        events:
+            - httpApi:
+                  path: /
+                  method: post
+    getPositions:
+        handler: src/getPositions.getPositions
+        events:
+            - httpApi:
+                path: /positions
+                method: get
+    gpx:
+        handler: src/buildGpx.buildGpx
+        events:
+            - httpApi:
+                  path: /gpx
+                  method: get
+
+resources:
+  Resources:
+    PositionTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: position_tablex
+        AttributeDefinitions:
+          - AttributeName: "id"
+            AttributeType: "S"
+          - AttributeName: "time"
+            AttributeType: "S"
+        KeySchema:
+          - AttributeName: "id"
+            KeyType: "HASH"
+          - AttributeName: "time"
+            KeyType: "RANGE"
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1

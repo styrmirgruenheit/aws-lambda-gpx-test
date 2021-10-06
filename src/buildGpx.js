@@ -7,33 +7,14 @@ const s3 = new AWS.S3();
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
 module.exports.buildGpx = async (event) => {
-    var params = {
-        TableName: 'position_table',
-    };
+    const items = await getAllRecords();
 
-    const items = await dynamoDB.scan(params).promise();
-
-    let points = items.Items.map(
-        (item) => new Point(+item.latitude, +item.longitude, { ele: 314.715, time: new Date(item.time), hr: 121 })
-    );
-
-    points = sortByKey(points, 'time');
-
-    const gpxData = new GarminBuilder();
-
-    gpxData.setSegmentPoints(points);
-
-    const gpxFile = buildGPX(gpxData.toObject());
-
-    console.log(gpxFile);
+    const gpxFile = buildGPXFile(items);
 
     const s3result = await uploadToS3('aws-lambda-gpx-test', 'track-' + uuid.v1() + '.gpx', gpxFile, 'application/gpx+xml');
+    console.log('Result of upload to s3', s3result);
 
-    console.log('s3-result', s3result);
-
-    const allRecords = await getAllRecords();
-
-    for (const item of allRecords) {
+    for (const item of items) {
         await deleteItem(item.id);
     }
 
@@ -53,6 +34,20 @@ const uploadToS3 = (bucket, key, buffer, mimeType) =>
         });
     });
 
+function buildGPXFile(items) {
+    let points = items.map(
+        (item) => new Point(+item.latitude, +item.longitude, { ele: 314.715, time: new Date(item.time), hr: 121 })
+    );
+
+    points = sortByKey(points, 'time');
+
+    const gpxData = new GarminBuilder();
+    gpxData.setSegmentPoints(points);
+
+    const gpxFile = buildGPX(gpxData.toObject());
+    return gpxFile;
+}
+
 function sortByKey(array, key) {
     return array.sort(function (a, b) {
         var x = a[key];
@@ -68,8 +63,6 @@ const getAllRecords = async () => {
     let items = [];
     let data = await dynamoDB.scan(params).promise();
 
-console.log('data', data)
-
     items = [...items, ...data.Items];
     while (typeof data.LastEvaluatedKey != 'undefined') {
         params.ExclusiveStartKey = data.LastEvaluatedKey;
@@ -80,8 +73,6 @@ console.log('data', data)
 };
 
 const deleteItem = (id) => {
-    console.log('Deleting ', id);
-
     var params = {
         TableName: 'position_table',
         Key: {

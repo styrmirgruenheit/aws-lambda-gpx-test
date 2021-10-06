@@ -2,16 +2,10 @@
 
 const AWS = require('aws-sdk');
 
-module.exports.getPositions = async (event, context, callback) => {
-    const dynamoDB = new AWS.DynamoDB.DocumentClient();
+const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
-    var params = {
-        TableName: 'position_table',
-    };
-
-    console.log('Scan mit', params);
-
-    const items = await dynamoDB.scan(params).promise();
+module.exports.getPositions = async (event) => {
+    const items = await getAllRecords();
 
     return {
         statusCode: 200,
@@ -20,4 +14,20 @@ module.exports.getPositions = async (event, context, callback) => {
             items: items.Items,
         }),
     };
+};
+
+const getAllRecords = async () => {
+    let params = {
+        TableName: 'position_table',
+    };
+    let items = [];
+    let data = await dynamoDB.scan(params).promise();
+
+    items = [...items, ...data.Items];
+    while (typeof data.LastEvaluatedKey != 'undefined') {
+        params.ExclusiveStartKey = data.LastEvaluatedKey;
+        data = await dynamoDB.scan(params).promise();
+        items = [...items, ...data.Items];
+    }
+    return items;
 };

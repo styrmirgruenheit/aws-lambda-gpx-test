@@ -3,10 +3,8 @@
 const uuid = require('uuid');
 const AWS = require('aws-sdk');
 
-module.exports.addPosition = async (event, context, callback) => {
+module.exports.addPosition = async (event) => {
     const body = JSON.parse(event.body);
-
-    console.log('body', body);
 
     const dynamoDB = new AWS.DynamoDB.DocumentClient();
 

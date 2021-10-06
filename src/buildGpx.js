@@ -7,9 +7,8 @@ const s3 = new AWS.S3();
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
 module.exports.buildGpx = async (event) => {
-
     var params = {
-        TableName: 'position_tablex',
+        TableName: 'position_table',
     };
 
     const items = await dynamoDB.scan(params).promise();
@@ -28,9 +27,15 @@ module.exports.buildGpx = async (event) => {
 
     console.log(gpxFile);
 
-    const s3result = await uploadToS3('aws-lambda-gpx-test', 'track-' + uuid.v1() + ".gpx", gpxFile, 'application/gpx+xml');
+    const s3result = await uploadToS3('aws-lambda-gpx-test', 'track-' + uuid.v1() + '.gpx', gpxFile, 'application/gpx+xml');
 
     console.log('s3-result', s3result);
+
+    const allRecords = await getAllRecords();
+
+    for (const item of allRecords) {
+        await deleteItem(item.id);
+    }
 
     return {
         statusCode: 200,
@@ -55,3 +60,44 @@ function sortByKey(array, key) {
         return x < y ? -1 : x > y ? 1 : 0;
     });
 }
+
+const getAllRecords = async () => {
+    let params = {
+        TableName: 'position_table',
+    };
+    let items = [];
+    let data = await dynamoDB.scan(params).promise();
+
+console.log('data', data)
+
+    items = [...items, ...data.Items];
+    while (typeof data.LastEvaluatedKey != 'undefined') {
+        params.ExclusiveStartKey = data.LastEvaluatedKey;
+        data = await dynamoDB.scan(params).promise();
+        items = [...items, ...data.Items];
+    }
+    return items;
+};
+
+const deleteItem = (id) => {
+    console.log('Deleting ', id);
+
+    var params = {
+        TableName: 'position_table',
+        Key: {
+            id: id,
+        },
+    };
+
+    return new Promise(function (resolve, reject) {
+        dynamoDB.delete(params, function (err, data) {
+            if (err) {
+                console.log('Error Deleting ', id, err);
+                reject(err);
+            } else {
+                console.log('Success Deleting ', id, data);
+                resolve();
+            }
+        });
+    });
+};

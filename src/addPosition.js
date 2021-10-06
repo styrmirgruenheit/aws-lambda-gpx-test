@@ -19,7 +19,7 @@ module.exports.addPosition = async (event, context, callback) => {
     };
 
     const positionInfo = {
-        TableName: 'position_tablex',
+        TableName: 'position_table',
         Item: position,
     };
 

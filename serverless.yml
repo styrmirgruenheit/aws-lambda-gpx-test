@@ -13,6 +13,7 @@ provider:
           - dynamodb:Scan
           - dynamodb:GetItem
           - dynamodb:PutItem
+          - dynamodb:DeleteItem
         Resource: "*"
       - Effect: "Allow"
         Action:
@@ -46,17 +47,13 @@ resources:
     PositionTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: position_tablex
+        TableName: position_table
         AttributeDefinitions:
           - AttributeName: "id"
-            AttributeType: "S"
-          - AttributeName: "time"
             AttributeType: "S"
         KeySchema:
           - AttributeName: "id"
             KeyType: "HASH"
-          - AttributeName: "time"
-            KeyType: "RANGE"
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1

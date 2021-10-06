@@ -6,7 +6,7 @@ module.exports.getPositions = async (event, context, callback) => {
     const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
     var params = {
-        TableName: 'position_tablex',
+        TableName: 'position_table',
     };
 
     console.log('Scan mit', params);
